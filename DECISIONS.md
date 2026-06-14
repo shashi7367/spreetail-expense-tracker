@@ -11,3 +11,15 @@ This document records the key architectural and design decisions made for the Sp
 | **PostgreSQL Adapter** | `psycopg` (v3) | Precompiled wheels for Python 3.14 on Windows avoid compiling `psycopg2` from C source, ensuring a seamless local setup. Django 4.2 has native support for `psycopg` (v3). |
 | **Decouple for Config** | `python-decouple` | Decouples app logic from configuration secrets, enforcing the 12-factor app model. |
 
+## 2. Django Database Models (Task 2)
+
+| Table | Architectural / Schema Choice | Rationale |
+| :--- | :--- | :--- |
+| **CustomUser** | Extends `AbstractUser` and adds optional `phone` field. | Allows user search and lookup via phone number. Registered as `AUTH_USER_MODEL` before initial migrations to prevent key constraints refactoring failure later. |
+| **Member** | Explicit through table for User-Group relationship. | Allows tracking `joined_at` timestamp and leaves room for future fields (e.g. member roles or status). |
+| **Expense** | `DecimalField` for `amount` & `amount_inr`; soft-delete via `is_deleted` and `deleted_at`. | Decimals prevent Float arithmetic rounding errors in financial balances. Soft-delete preserves historical splits and settlements from corruption. |
+| **ExpenseSplit** | `UniqueConstraint` on `(expense, user)`. | Ensures a participant can only be assigned a single split per expense. |
+| **Settlement** | `on_delete=models.PROTECT` on users. | Prevents deleting a user if active peer settlement history exists, maintaining auditing records. |
+| **ImportLog** | `import_batch_id` as UUID, `raw_data` as `JSONField`. | Groups bulk uploads. JSON stores the original CSV payload to allow programmatic retry or parsing diagnostics in case of validation failures. |
+
+
