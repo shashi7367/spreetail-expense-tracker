@@ -5,6 +5,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils import timezone
+from rest_framework.parsers import MultiPartParser, FormParser
+from .services.csv_importer import CSVImporter
 
 from .models import CustomUser, Group, Member, Expense, ExpenseSplit, Settlement
 from .serializers import (
@@ -334,3 +336,39 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         instance.save()
         
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class CSVImportView(APIView):
+    """
+    Endpoint to trigger bulk CSV imports.
+    Path: POST /api/import/csv/
+    Requires MultiPart Form Data: 'file' (the CSV file) and 'group_id' (destination group ID).
+    """
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        csv_file = request.FILES.get('file')
+        group_id = request.data.get('group_id') or request.query_params.get('group_id')
+
+        if not csv_file:
+            return Response({"detail": "CSV file is required under 'file' key."}, status=status.HTTP_400_BAD_REQUEST)
+        if not group_id:
+            return Response({"detail": "Group ID is required under 'group_id' key."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Security check: Ensure the group exists
+        try:
+            group = Group.objects.get(id=group_id)
+        except (Group.DoesNotExist, ValueError):
+            return Response({"detail": "Group does not exist."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Security check: Ensure the caller is a member of the group
+        if not Member.objects.filter(group=group, user=request.user).exists():
+            return Response({"detail": "You do not have permission to import files into this group."}, status=status.HTTP_403_FORBIDDEN)
+
+        # Run import pipeline
+        try:
+            report = CSVImporter.import_csv(csv_file.read(), group.id)
+            return Response(report, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"detail": f"An error occurred during file import: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
