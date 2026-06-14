@@ -130,6 +130,82 @@ class GroupViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED
         )
 
+    @action(detail=True, methods=['post'], url_path='settle')
+    def settle(self, request, pk=None):
+        """
+        Custom POST route allowing the active user to record a peer-to-peer settlement.
+        Path: POST /api/groups/{id}/settle/
+        """
+        from decimal import Decimal
+        group = self.get_object()
+        user = request.user
+
+        paid_by_id = request.data.get('paid_by')
+        paid_to_id = request.data.get('paid_to')
+        amount_raw = request.data.get('amount')
+
+        if not paid_to_id or not amount_raw:
+            return Response(
+                {"detail": "Both 'paid_to' (User ID) and 'amount' are required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            receiver = CustomUser.objects.get(id=paid_to_id)
+            amount = Decimal(str(amount_raw))
+        except (CustomUser.DoesNotExist, ValueError):
+            return Response(
+                {"detail": "Invalid receiver ID or invalid amount value."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Determine sender: default to caller if not specified in the payload
+        if paid_by_id:
+            try:
+                sender = CustomUser.objects.get(id=paid_by_id)
+            except CustomUser.DoesNotExist:
+                return Response(
+                    {"detail": "Invalid sender ID."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        else:
+            sender = user
+
+        # Enforce that both participants must be members of this group
+        if not Member.objects.filter(group=group, user=sender).exists() or not Member.objects.filter(group=group, user=receiver).exists():
+            return Response(
+                {"detail": "Both settlement participants must be members of this group."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Security check: Ensure the caller is either the sender or receiver
+        if user != sender and user != receiver:
+            return Response(
+                {"detail": "You must be a participant (debtor or creditor) in this settlement to log it."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Create Settlement entry
+        settlement = Settlement.objects.create(
+            group=group,
+            paid_by=sender,
+            paid_to=receiver,
+            amount=amount,
+            currency=group.base_currency,
+            settled_at=timezone.now()
+        )
+
+        return Response(
+            {
+                "detail": f"Successfully recorded settlement of {amount} from '{sender.username}' to '{receiver.username}'.",
+                "id": settlement.id,
+                "amount": float(settlement.amount),
+                "paid_by": sender.username,
+                "paid_to": receiver.username
+            },
+            status=status.HTTP_201_CREATED
+        )
+
     @action(detail=True, methods=['get'], url_path='balances')
     def balances(self, request, pk=None):
         """

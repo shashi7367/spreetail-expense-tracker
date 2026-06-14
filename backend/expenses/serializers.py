@@ -91,16 +91,47 @@ class LoginSerializer(serializers.Serializer):
 
 class GroupSerializer(serializers.ModelSerializer):
     """
-    Serializes basic Group info.
+    Serializes basic Group info, including computed totals for dashboard grids.
     
-    Why: Handles creating a group and automatically registers the creator as a Member.
+    Why: Computes total balance and membership count at serialization time,
+    eliminating redundant database query cycles on the React client.
     """
     created_by = UserSerializer(read_only=True)
+    member_count = serializers.SerializerMethodField()
+    user_balance = serializers.SerializerMethodField()
 
     class Meta:
         model = Group
-        fields = ['id', 'name', 'created_by', 'base_currency', 'created_at']
+        fields = ['id', 'name', 'created_by', 'base_currency', 'created_at', 'member_count', 'user_balance']
         read_only_fields = ['id', 'created_by', 'created_at']
+
+    def get_member_count(self, obj):
+        # Count total joined members
+        return obj.memberships.count()
+
+    def get_user_balance(self, obj):
+        # Calculate the requesting user's net financial balance inside this group.
+        # Net balance = (total paid by user - total splits owed by user) + (settlements paid - settlements received)
+        from django.db.models import Sum
+        from decimal import Decimal
+        request = self.context.get('request')
+        if not request or not request.user or not request.user.is_authenticated:
+            return 0.00
+
+        user = request.user
+
+        # 1. Sum of all active expenses paid by user
+        paid = obj.expenses.filter(paid_by=user, is_deleted=False).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        # 2. Sum of all active splits assigned to user
+        owed = obj.expenses.filter(is_deleted=False).filter(splits__user=user).aggregate(total=Sum('splits__share_amount'))['total'] or Decimal('0.00')
+        
+        # 3. Sum of all settlements sent by user (reduces what they owe)
+        sent = obj.settlements.filter(paid_by=user).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        # 4. Sum of all settlements received by user (reduces what they are owed)
+        received = obj.settlements.filter(paid_to=user).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+
+        net_position = (paid - owed) + (sent - received)
+        return float(net_position.quantize(Decimal('0.01')))
 
     def create(self, validated_data):
         request = self.context.get('request')
