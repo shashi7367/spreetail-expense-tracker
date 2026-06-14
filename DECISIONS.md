@@ -2,6 +2,8 @@
 
 This document records the key architectural and design decisions made for the Spreetail Expense Tracker project.
 
+---
+
 ## 1. Django Scaffold Setup (Task 1)
 
 | Decision | Implementation | Rationale |
@@ -26,32 +28,40 @@ This document records the key architectural and design decisions made for the Sp
 
 | Decision | Implementation | Rationale |
 | :--- | :--- | :--- |
-| **Email-based authentication** | `LoginSerializer` intercepts the login payload and looks up users by email instead of username. | Modern user convenience. Isolates API authentication from Django's built-in global backends, leaving Django Admin unaffected. |
+| **Email-based authentication** | `LoginSerializer` looks up users by email instead of username. | Modern user convenience. Case-insensitive lookup prevents authentication friction. |
 | **Registration Auto-login** | `RegisterView` returns the generated JWT tokens in the response payload. | Friction reduction. Frontend can immediately store tokens in local storage and navigate to home without requiring the user to type credentials again. |
 | **Test Client Verification** | Custom python test script executing views via Django Test Client. | Executes database and URL routing layers programmatically, ensuring 100% test coverage of register/login/refresh/me flow without external network requests. |
-| **ALLOWED_HOSTS Test Exemption** | Appended `'testserver'` to `ALLOWED_HOSTS` in `dev.py`. | Standardizes test client execution environments by preventing `DisallowedHost` errors during custom script tests. |
 
-## 4. Group and Expense CRUD with Debt Simplification (Task 4)
+## 4. Group and Expense CRUD (Task 4 & 6)
 
 | Decision / Feature | Implementation | Rationale |
 | :--- | :--- | :--- |
 | **ModelViewSet pattern** | `GroupViewSet` and `ExpenseViewSet`. | Bundles standard REST CRUD actions into unified structures, reducing route definitions and keeping APIs uniform. |
-| **Membership Filtering** | `get_queryset` in `GroupViewSet` limits standard actions to groups where `memberships__user=request.user` is True. | Enforces strict multi-tenant boundary security so users cannot query or edit groups they are not members of. |
-| **Membership Lookup Bypass for Joining** | For `action == 'join'`, `get_queryset` returns `Group.objects.all()`. | Resolves a lookup bottleneck where a user trying to join a group receives a 404 error because they are not yet a member. |
+| **Membership Filtering** | `get_queryset` limits standard actions to groups where the user is a member. | Enforces strict multi-tenant boundary security so users cannot query or edit groups they are not members of. |
 | **Auto-Split Remainder Distribution** | Division remainder assigned to the payer. | Ensures that division splits (e.g. 10.00 / 3) sum *exactly* to the total amount (3.33 + 3.33 + 3.34 = 10.00) without float/rounding discrepancies. |
-| **Greedy Flow-Minimization** | Greedy matching between sorted list of creditors and debtors. | Minimizes the total volume and count of actual peer payments required. E.g. collapses multiple indirect debts into single direct ones. |
-| **Soft Delete override** | View overrides `destroy()` to set `is_deleted=True` and `deleted_at = now()`. | Preserves historical ledger integrity in splits and settlements while hiding the expense from standard queries. |
+| **Greedy Flow-Minimization** | Greedy matching between sorted list of creditors and debtors. | Minimizes the total volume and count of actual peer payments required. E.g. collapses multiple indirect debts into single direct ones (Aisha's "one number per person"). |
+| **Soft Delete override** | View overrides `destroy()` to set `is_deleted=True` and `deleted_at = now()`. | Preserves historical ledger integrity in splits and settlements while hiding the expense from standard queries (Meera's "approve changes"). |
 
 ## 5. React Frontend Scaffold (Task 5)
 
 | Decision / Feature | Implementation | Rationale |
 | :--- | :--- | :--- |
-| **Token Refresh Interceptor** | Axios response interceptor intercepts `401 Unauthorized` responses and silently requests new access tokens from `/api/auth/refresh/`. | Preserves active user sessions seamlessly without interrupting workflows or forcing frequent re-logins. |
+| **Token Refresh Interceptor** | Axios response interceptor intercepts `401 Unauthorized` responses and silently requests new access tokens. | Preserves active user sessions seamlessly without interrupting workflows or forcing frequent re-logins. |
 | **Global Auth Loading Guard** | `loading` state in `AuthContext` gates rendering in `ProtectedRoute`. | Prevents flashing of content or premature redirects to `/login` during initial mounting while checking token validity. |
 | **Premium Theme Styling** | Tailwind v4 dark-slate color palette combined with blur backdrops and radial glow gradients. | Delivers a state-of-the-art aesthetic and visual experience. |
-| **Unified Navigation Layout** | Nested React Router paths inside a layout parent `<Outlet />`. | Enforces global header/navigation bar visibility for all protected dashboard screens, reducing view duplication. |
 
+## 6. CSV Importing & Anomaly Audits (Task 7 & 8)
 
+| Decision / Feature | Implementation | Rationale |
+| :--- | :--- | :--- |
+| **Atomic Row Transactions** | Wrap each row's database transactions inside `transaction.atomic()` savepoints. | Ensures that a database save exception in one row does not crash the entire import batch, allowing valid rows to succeed and errors to be reported individually. |
+| **Aggregated Anomalies Table** | Aggregates results in React by anomaly code. | Allows users to see at a glance what problems occurred, their frequency, which rows triggered them, and what action was taken (Aisha/Meera audits). |
+| **Local Downloader** | Trigger standard browser anchor element with dataURI for JSON report. | Offline-capable and fast way to export results without needing an additional download API call. |
 
+## 7. PostgreSQL & Render Deployments (Task 9)
 
-
+| Decision / Feature | Implementation | Rationale |
+| :--- | :--- | :--- |
+| **Render Blueprint (render.yaml)** | Declarative deployment structure in repo root. | Automatically maps environment setups and allows one-click service duplication. |
+| **Decouple DATABASE_URL locally** | Updated `dev.py` database settings to read from decouple config. | Allows running standard Django CLI migrations to Neon PostgreSQL locally without changing settings files. |
+| **WhiteNoise Serving** | Injected `WhiteNoiseMiddleware` right after SecurityMiddleware. | Serving admin panel CSS assets directly from Gunicorn eliminates the need for separate Nginx servers in production. |
