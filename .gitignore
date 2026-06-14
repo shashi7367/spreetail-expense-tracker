@@ -1,1 +1,21 @@
-Python
+# Python / Django
+__pycache__/
+*.py[cod]
+*$py.class
+*.sqlite3
+db.sqlite3
+/staticfiles/
+.env
+
+# Javascript / Node / React
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+
+# Editors & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
