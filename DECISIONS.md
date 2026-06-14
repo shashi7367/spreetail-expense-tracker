@@ -22,4 +22,14 @@ This document records the key architectural and design decisions made for the Sp
 | **Settlement** | `on_delete=models.PROTECT` on users. | Prevents deleting a user if active peer settlement history exists, maintaining auditing records. |
 | **ImportLog** | `import_batch_id` as UUID, `raw_data` as `JSONField`. | Groups bulk uploads. JSON stores the original CSV payload to allow programmatic retry or parsing diagnostics in case of validation failures. |
 
+## 3. JWT Authentication (Task 3)
+
+| Decision | Implementation | Rationale |
+| :--- | :--- | :--- |
+| **Email-based authentication** | `LoginSerializer` intercepts the login payload and looks up users by email instead of username. | Modern user convenience. Isolates API authentication from Django's built-in global backends, leaving Django Admin unaffected. |
+| **Registration Auto-login** | `RegisterView` returns the generated JWT tokens in the response payload. | Friction reduction. Frontend can immediately store tokens in local storage and navigate to home without requiring the user to type credentials again. |
+| **Test Client Verification** | Custom python test script executing views via Django Test Client. | Executes database and URL routing layers programmatically, ensuring 100% test coverage of register/login/refresh/me flow without external network requests. |
+| **ALLOWED_HOSTS Test Exemption** | Appended `'testserver'` to `ALLOWED_HOSTS` in `dev.py`. | Standardizes test client execution environments by preventing `DisallowedHost` errors during custom script tests. |
+
+
 

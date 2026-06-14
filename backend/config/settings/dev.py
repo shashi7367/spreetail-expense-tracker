@@ -4,6 +4,9 @@ import dj_database_url
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+# Allow 'testserver' for Django Test Client in development
+ALLOWED_HOSTS = ALLOWED_HOSTS + ['testserver']
+
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 # Fallback to local SQLite if DATABASE_URL is not set in the environment/dotenv file.
