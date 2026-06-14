@@ -31,5 +31,17 @@ This document records the key architectural and design decisions made for the Sp
 | **Test Client Verification** | Custom python test script executing views via Django Test Client. | Executes database and URL routing layers programmatically, ensuring 100% test coverage of register/login/refresh/me flow without external network requests. |
 | **ALLOWED_HOSTS Test Exemption** | Appended `'testserver'` to `ALLOWED_HOSTS` in `dev.py`. | Standardizes test client execution environments by preventing `DisallowedHost` errors during custom script tests. |
 
+## 4. Group and Expense CRUD with Debt Simplification (Task 4)
+
+| Decision / Feature | Implementation | Rationale |
+| :--- | :--- | :--- |
+| **ModelViewSet pattern** | `GroupViewSet` and `ExpenseViewSet`. | Bundles standard REST CRUD actions into unified structures, reducing route definitions and keeping APIs uniform. |
+| **Membership Filtering** | `get_queryset` in `GroupViewSet` limits standard actions to groups where `memberships__user=request.user` is True. | Enforces strict multi-tenant boundary security so users cannot query or edit groups they are not members of. |
+| **Membership Lookup Bypass for Joining** | For `action == 'join'`, `get_queryset` returns `Group.objects.all()`. | Resolves a lookup bottleneck where a user trying to join a group receives a 404 error because they are not yet a member. |
+| **Auto-Split Remainder Distribution** | Division remainder assigned to the payer. | Ensures that division splits (e.g. 10.00 / 3) sum *exactly* to the total amount (3.33 + 3.33 + 3.34 = 10.00) without float/rounding discrepancies. |
+| **Greedy Flow-Minimization** | Greedy matching between sorted list of creditors and debtors. | Minimizes the total volume and count of actual peer payments required. E.g. collapses multiple indirect debts into single direct ones. |
+| **Soft Delete override** | View overrides `destroy()` to set `is_deleted=True` and `deleted_at = now()`. | Preserves historical ledger integrity in splits and settlements while hiding the expense from standard queries. |
+
+
 
 

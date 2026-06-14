@@ -14,5 +14,10 @@ This document tracks how AI tools were used during the development of the Spreet
 - **Role**: Security & API Engineer.
 - **Actions**: Implemented RegisterSerializer, LoginSerializer (with custom email lookup), and UserSerializer in serializers.py. Created RegisterView, LoginView, and MeView in views.py, and mapped routing in urls.py. Designed and ran a python-based Django Test Client script to verify registration, login, token refresh, and profile endpoints. Modified development settings to allow 'testserver' host header for test suite compatibility.
 
+## Task 4: Group and Expense CRUD with Debt Simplification
+- **Role**: Tech Lead & Database Architect.
+- **Actions**: Implemented Group and Expense CRUD serializers with auto-join on group creation, auto-split equally, and division remainder adjustment. Coded GroupViewSet and ExpenseViewSet with custom actions (`join`, `balances`). Implemented the greedy flow-minimization (simplified debt) algorithm. Ran local verification scripts against the Django Test Client to verify group joins, auto-splits, settlements, soft delete, and balance calculations.
+
+
 
 
