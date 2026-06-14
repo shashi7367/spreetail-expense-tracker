@@ -1,0 +1,9 @@
+payer_email,amount,date,currency,description,participants
+user_a@example.com,120.00,2026-06-10,INR,Dinner with friends,user_b@example.com;user_c@example.com
+user_a@example.com,120.00,2026-06-10,INR,Dinner with friends,user_b@example.com;user_c@example.com
+user_b@example.com,15.00,2026-06-12,USD,Taxi ride,user_a@example.com
+user_c@example.com,45.00,2026-06-13,INR,Paid back User A for pizza,user_a@example.com
+user_a@example.com,,2026-06-11,INR,Empty amount row,user_b@example.com
+user_a@example.com,85.00,2026-06-25,INR,Future concert ticket,user_b@example.com
+user_a@example.com,150.00,2026-06-12,INR,Dinner with non-member,nonmember@example.com
+user_b@example.com,-10.00,2026-06-12,INR,Refund row,user_a@example.com
