@@ -18,6 +18,11 @@ This document tracks how AI tools were used during the development of the Spreet
 - **Role**: Tech Lead & Database Architect.
 - **Actions**: Implemented Group and Expense CRUD serializers with auto-join on group creation, auto-split equally, and division remainder adjustment. Coded GroupViewSet and ExpenseViewSet with custom actions (`join`, `balances`). Implemented the greedy flow-minimization (simplified debt) algorithm. Ran local verification scripts against the Django Test Client to verify group joins, auto-splits, settlements, soft delete, and balance calculations.
 
+## Task 5: React Frontend Scaffold Configuration
+- **Role**: Senior UI/UX & Frontend Engineer.
+- **Actions**: Initialized Vite React template. Installed and configured Tailwind CSS v4, Axios, React Router, and hot toast indicators. Implemented global AuthProvider context, created ProtectedRoute guards, structured page routes in App.jsx, and designed fully styled LoginPage and RegisterPage forms with violet-slate glassmorphism components.
+
+
 
 
 

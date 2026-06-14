@@ -42,6 +42,16 @@ This document records the key architectural and design decisions made for the Sp
 | **Greedy Flow-Minimization** | Greedy matching between sorted list of creditors and debtors. | Minimizes the total volume and count of actual peer payments required. E.g. collapses multiple indirect debts into single direct ones. |
 | **Soft Delete override** | View overrides `destroy()` to set `is_deleted=True` and `deleted_at = now()`. | Preserves historical ledger integrity in splits and settlements while hiding the expense from standard queries. |
 
+## 5. React Frontend Scaffold (Task 5)
+
+| Decision / Feature | Implementation | Rationale |
+| :--- | :--- | :--- |
+| **Token Refresh Interceptor** | Axios response interceptor intercepts `401 Unauthorized` responses and silently requests new access tokens from `/api/auth/refresh/`. | Preserves active user sessions seamlessly without interrupting workflows or forcing frequent re-logins. |
+| **Global Auth Loading Guard** | `loading` state in `AuthContext` gates rendering in `ProtectedRoute`. | Prevents flashing of content or premature redirects to `/login` during initial mounting while checking token validity. |
+| **Premium Theme Styling** | Tailwind v4 dark-slate color palette combined with blur backdrops and radial glow gradients. | Delivers a state-of-the-art aesthetic and visual experience. |
+| **Unified Navigation Layout** | Nested React Router paths inside a layout parent `<Outlet />`. | Enforces global header/navigation bar visibility for all protected dashboard screens, reducing view duplication. |
+
+
 
 
 
