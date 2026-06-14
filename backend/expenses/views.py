@@ -369,6 +369,16 @@ class CSVImportView(APIView):
         # Run import pipeline
         try:
             report = CSVImporter.import_csv(csv_file.read(), group.id)
+            
+            # Save import-report.json to project root
+            import json
+            import os
+            from django.conf import settings
+            project_root = os.path.dirname(settings.BASE_DIR)
+            report_path = os.path.join(project_root, 'import-report.json')
+            with open(report_path, 'w', encoding='utf-8') as f:
+                json.dump(report, f, indent=2)
+                
             return Response(report, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"detail": f"An error occurred during file import: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
