@@ -5,6 +5,7 @@ A full-stack shared expense tracking application built with Django REST Framewor
 - **Deployed Frontend URL**: [https://spreetail-expense-tracker.vercel.app](https://spreetail-expense-tracker.vercel.app)
 - **Deployed Backend URL**: [https://spreetail-expense-tracker-backend.onrender.com](https://spreetail-expense-tracker-backend.onrender.com)
 - **GitHub Repository**: [https://github.com/shashi7367/spreetail-expense-tracker](https://github.com/shashi7367/spreetail-expense-tracker)
+- **Developer / Creator**: [Shashi Ranjan Kumar](https://github.com/shashi7367)
 
 ---
 
@@ -89,7 +90,7 @@ A full-stack shared expense tracking application built with Django REST Framewor
 
 ## 🤖 Development Notes
 
-AI tools (GitHub Copilot, ChatGPT) were used for debugging assistance, code review suggestions, and documentation support. All architecture decisions, implementation, testing, deployment, and final code integration were performed by the developer.
+AI tools (GitHub Copilot, ChatGPT) were used for debugging assistance, code review suggestions, and documentation support. All architecture decisions, implementation, testing, deployment, and final code integration were performed by the developer, **Shashi Ranjan Kumar**.
 
 ## 📸 Screenshots
 
