@@ -1,149 +1,85 @@
 {
-  "import_batch_id": "6624f8bb-9c14-431c-ab37-eb619916ea44",
-  "total_rows": 8,
-  "imported_count": 1,
-  "skipped_count": 1,
-  "failed_count": 2,
-  "warnings_count": 4,
+  "import_batch_id": "2cc3359b-7761-4f29-bd2d-4f54a176e2f4",
+  "total_rows": 4,
+  "imported_count": 0,
+  "skipped_count": 0,
+  "failed_count": 4,
+  "warnings_count": 0,
   "rows": [
     {
       "row_number": 1,
-      "status": "WARNING",
+      "status": "ERROR",
       "anomalies": [
-        "ANO-006"
+        "USER_NOT_FOUND"
       ],
-      "action_taken": "Imported with warnings: Auto-joined participant 'user_b@example.com' to group.; Auto-joined participant 'user_c@example.com' to group. | Imported expense: 'Dinner with friends' of 120.00 INR.",
-      "errors": [],
+      "action_taken": "Rejected row: Payer email 'alice@eg.com' does not exist in the system database.",
+      "errors": [
+        "Payer email 'alice@eg.com' does not exist in the system database."
+      ],
       "original_data": {
-        "payer_email": "user_a@example.com",
-        "amount": "120.00",
-        "date": "2026-06-10",
+        "payer_email": "alice@eg.com",
+        "amount": "1200",
+        "date": "2026-06-12",
         "currency": "INR",
-        "description": "Dinner with friends",
-        "participants": "user_b@example.com;user_c@example.com"
+        "description": "Dinner split",
+        "participants": "bob@eg.com;charlie@eg.com"
       }
     },
     {
       "row_number": 2,
-      "status": "SKIPPED",
+      "status": "ERROR",
       "anomalies": [
-        "ANO-001"
+        "USER_NOT_FOUND"
       ],
-      "action_taken": "Skipped duplicate transaction row.",
-      "errors": [],
+      "action_taken": "Rejected row: Payer email 'bob@eg.com' does not exist in the system database.",
+      "errors": [
+        "Payer email 'bob@eg.com' does not exist in the system database."
+      ],
       "original_data": {
-        "payer_email": "user_a@example.com",
-        "amount": "120.00",
-        "date": "2026-06-10",
+        "payer_email": "bob@eg.com",
+        "amount": "850",
+        "date": "2026-06-13",
         "currency": "INR",
-        "description": "Dinner with friends",
-        "participants": "user_b@example.com;user_c@example.com"
+        "description": "Movie tickets",
+        "participants": "alice@eg.com;charlie@eg.com"
       }
     },
     {
       "row_number": 3,
-      "status": "WARNING",
+      "status": "ERROR",
       "anomalies": [
-        "ANO-002"
+        "USER_NOT_FOUND"
       ],
-      "action_taken": "Imported with warnings: Currency mismatch: Converted 15.00 USD to 1252.50 INR (Base Currency). | Imported expense: 'Taxi ride' of 1252.50 INR.",
-      "errors": [],
+      "action_taken": "Rejected row: Payer email 'charlie@eg.com' does not exist in the system database.",
+      "errors": [
+        "Payer email 'charlie@eg.com' does not exist in the system database."
+      ],
       "original_data": {
-        "payer_email": "user_b@example.com",
-        "amount": "15.00",
-        "date": "2026-06-12",
-        "currency": "USD",
-        "description": "Taxi ride",
-        "participants": "user_a@example.com"
+        "payer_email": "charlie@eg.com",
+        "amount": "1500",
+        "date": "2026-06-14",
+        "currency": "INR",
+        "description": "Weekend groceries",
+        "participants": "alice@eg.com;bob@eg.com"
       }
     },
     {
       "row_number": 4,
-      "status": "IMPORTED",
-      "anomalies": [
-        "ANO-003"
-      ],
-      "action_taken": "Imported successfully. | Reclassified expense description 'Paid back User A for pizza' as Settlement. Sender: user_c@example.com, Receiver: user_a@example.com, Amount: 45.00 INR.",
-      "errors": [],
-      "original_data": {
-        "payer_email": "user_c@example.com",
-        "amount": "45.00",
-        "date": "2026-06-13",
-        "currency": "INR",
-        "description": "Paid back User A for pizza",
-        "participants": "user_a@example.com"
-      }
-    },
-    {
-      "row_number": 5,
       "status": "ERROR",
       "anomalies": [
-        "ANO-004"
+        "USER_NOT_FOUND"
       ],
-      "action_taken": "Rejected row: Missing required fields: amount",
+      "action_taken": "Rejected row: Payer email 'alice@eg.com' does not exist in the system database.",
       "errors": [
-        "Missing required fields: amount"
+        "Payer email 'alice@eg.com' does not exist in the system database."
       ],
       "original_data": {
-        "payer_email": "user_a@example.com",
-        "amount": "",
-        "date": "2026-06-11",
-        "currency": "INR",
-        "description": "Empty amount row",
-        "participants": "user_b@example.com"
-      }
-    },
-    {
-      "row_number": 6,
-      "status": "WARNING",
-      "anomalies": [
-        "ANO-005"
-      ],
-      "action_taken": "Imported with warnings: Future dated transaction: 2026-06-25 is after today (2026-06-14). | Imported expense: 'Future concert ticket' of 85.00 INR.",
-      "errors": [],
-      "original_data": {
-        "payer_email": "user_a@example.com",
-        "amount": "85.00",
-        "date": "2026-06-25",
-        "currency": "INR",
-        "description": "Future concert ticket",
-        "participants": "user_b@example.com"
-      }
-    },
-    {
-      "row_number": 7,
-      "status": "WARNING",
-      "anomalies": [
-        "ANO-006"
-      ],
-      "action_taken": "Imported with warnings: Auto-joined participant 'nonmember@example.com' to group. | Imported expense: 'Dinner with non-member' of 150.00 INR.",
-      "errors": [],
-      "original_data": {
-        "payer_email": "user_a@example.com",
-        "amount": "150.00",
-        "date": "2026-06-12",
-        "currency": "INR",
-        "description": "Dinner with non-member",
-        "participants": "nonmember@example.com"
-      }
-    },
-    {
-      "row_number": 8,
-      "status": "ERROR",
-      "anomalies": [
-        "ANO-007"
-      ],
-      "action_taken": "Rejected row: Transaction amount must be positive. Found: -10.00",
-      "errors": [
-        "Transaction amount must be positive. Found: -10.00"
-      ],
-      "original_data": {
-        "payer_email": "user_b@example.com",
-        "amount": "-10.00",
-        "date": "2026-06-12",
-        "currency": "INR",
-        "description": "Refund row",
-        "participants": "user_a@example.com"
+        "payer_email": "alice@eg.com",
+        "amount": "600",
+        "date": "2026-06-15",
+        "currency": "USD",
+        "description": "Cab fare",
+        "participants": "bob@eg.com"
       }
     }
   ]

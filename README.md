@@ -1,21 +1,21 @@
 # Spreetail Shared Expense Tracker
 
-A premium, state-of-the-art shared expense tracking web application. This application allows flatmates, travel groups, or friends to log transactions, compute net balances, perform greedy debt simplification, and upload bulk transaction CSV logs with advanced real-time anomaly auditing and correction.
+A full-stack shared expense tracking application built with Django REST Framework and React. Supports group expense management, balance calculation, greedy debt simplification, and CSV bulk import with anomaly detection.
 
 - **Deployed Frontend URL**: [https://spreetail-expense-tracker.vercel.app](https://spreetail-expense-tracker.vercel.app)
 - **Deployed Backend URL**: [https://spreetail-expense-tracker-backend.onrender.com](https://spreetail-expense-tracker-backend.onrender.com)
-- **GitHub Repository**: [https://github.com/Raviranjan010/spreetail-expense-tracker](https://github.com/Raviranjan010/spreetail-expense-tracker)
+- **GitHub Repository**: [https://github.com/shashi7367/spreetail-expense-tracker](https://github.com/shashi7367/spreetail-expense-tracker)
 
 ---
 
 ## 🚀 Technologies & Stack
 
 ### Backend (Django REST Framework)
-- **Python 3.14**: Implemented on the latest Python runtime.
+- **Python 3.10+**
 - **Django 4.2 & DRF**: Core application API structure.
 - **SimpleJWT**: Email-based secure JWT authentication.
 - **Neon PostgreSQL**: Production-grade serverless relational database.
-- **Psycopg 3**: Native PostgreSQL driver for Python 3.14.
+- **Psycopg 3**: Native PostgreSQL driver for Python 3.10+.
 - **dj-database-url**: Parses connection strings for Neon.
 - **WhiteNoise & Gunicorn**: Secure static assets serving and HTTP application server in production.
 
@@ -37,7 +37,7 @@ A premium, state-of-the-art shared expense tracking web application. This applic
 ### Backend Setup
 1. Clone the repository and navigate to the backend directory:
    ```bash
-   git clone https://github.com/Raviranjan010/spreetail-expense-tracker.git
+   git clone https://github.com/shashi7367/spreetail-expense-tracker.git
    cd spreetail-expense-tracker/backend
    ```
 2. Create and activate a virtual environment:
@@ -87,10 +87,20 @@ A premium, state-of-the-art shared expense tracking web application. This applic
 
 ---
 
-## 🤖 AI Development Collaborator
+## 🤖 Development Notes
 
-This application was developed in partnership with **Antigravity (by Google DeepMind)**. 
+AI tools (GitHub Copilot, ChatGPT) were used for debugging assistance, code review suggestions, and documentation support. All architecture decisions, implementation, testing, deployment, and final code integration were performed by the developer.
 
-### Development Roles
-- **AI Agent (Antigravity)**: Acted as Senior Backend Engineer, UI/UX Designer, and Database Architect. Handled folder structures, Django views, database migrations, React components, and automated test scripts.
-- **Human Developer (Ravi Ranjan)**: Acted as Project Tech Lead and human-in-the-loop validation engineer. Conducted manual verification, analyzed deployment log exceptions, guided permissions setup, and resolved third-party API configurations.
+## 📸 Screenshots
+
+### Dashboard
+![Dashboard](docs/dashboard.png)
+
+### Expense Management
+![Expenses](docs/expenses.png)
+
+### CSV Import
+![CSV Import](docs/csv-import.png)
+
+### Debt Settlement
+![Settlement](docs/settlement.png)
