@@ -10,10 +10,12 @@ ALLOWED_HOSTS = ALLOWED_HOSTS + ['testserver']
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 # Fallback to local SQLite if DATABASE_URL is not set in decouple config.
+db_url = config('DATABASE_URL', default='')
+if not db_url:
+    db_url = f"sqlite:///{BASE_DIR}/db.sqlite3"
+
 DATABASES = {
-    'default': dj_database_url.config(
-        default=config('DATABASE_URL', default=f"sqlite:///{BASE_DIR}/db.sqlite3")
-    )
+    'default': dj_database_url.config(default=db_url)
 }
 
 # Development CORS configuration
