@@ -103,4 +103,4 @@ AI tools (GitHub Copilot, ChatGPT) were used for debugging assistance, code revi
 ![CSV Import](docs/csv-import.png)
 
 ### Debt Settlement
-![Settlement](docs/settlement.png)
+![Debt Settlement](docs/settlement.png)
