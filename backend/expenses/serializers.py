@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import CustomUser, Group, Member, Expense, ExpenseSplit
+from .models import CustomUser, Group, Member, Expense, ExpenseSplit, Budget, Notification
+
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -320,3 +321,36 @@ class ExpenseSerializer(serializers.ModelSerializer):
                 ExpenseSplit.objects.bulk_create(splits_to_create)
 
         return instance
+
+
+class BudgetSerializer(serializers.ModelSerializer):
+    """
+    Serializes Budget limits configured for category tracking.
+    """
+    created_by_name = serializers.CharField(source='created_by.username', read_only=True)
+    group_name = serializers.CharField(source='group.name', read_only=True)
+
+    class Meta:
+        model = Budget
+        fields = ['id', 'group', 'group_name', 'category', 'amount_limit', 'created_by', 'created_by_name', 'created_at']
+        read_only_fields = ['id', 'created_by', 'created_at']
+
+    def create(self, validated_data):
+        # Assign the requesting user as creator
+        request = self.context.get('request')
+        if request and request.user:
+            validated_data['created_by'] = request.user
+        return super().create(validated_data)
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    """
+    Serializes user alerts and system messages.
+    """
+    group_name = serializers.CharField(source='group.name', read_only=True, default='')
+
+    class Meta:
+        model = Notification
+        fields = ['id', 'group', 'group_name', 'notification_type', 'title', 'message', 'is_read', 'created_at']
+        read_only_fields = ['id', 'group', 'group_name', 'notification_type', 'title', 'message', 'created_at']
+

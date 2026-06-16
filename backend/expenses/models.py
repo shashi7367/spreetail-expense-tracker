@@ -200,3 +200,65 @@ class ImportLog(models.Model):
 
     def __str__(self):
         return f"Batch {self.import_batch_id} | Row {self.row_number} | {self.status}"
+
+
+class Budget(models.Model):
+    """
+    Tracks the category spending limit for each group.
+    
+    Why: Users want to keep track of their spending limit on a per-category or group basis
+    and get alerted when they approach or exceed those limits.
+    """
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='budgets')
+    category = models.CharField(max_length=100, choices=CATEGORY_CHOICES, default='OTHER')
+    amount_limit = models.DecimalField(max_digits=12, decimal_places=2)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='created_budgets'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['group', 'category'], name='unique_group_category_budget')
+        ]
+
+    def __str__(self):
+        return f"{self.group.name} - {self.category}: Limit {self.amount_limit}"
+
+
+class Notification(models.Model):
+    """
+    Stores system and user notifications for group members.
+    
+    Why: Real-time user alert dashboard. Keeps users in the loop on new expenses,
+    settlements, and budget utilization limits.
+    """
+    NOTIFICATION_TYPES = [
+        ('EXPENSE_ADDED', 'Expense Added'),
+        ('BUDGET_WARNING', 'Budget Warning'),
+        ('BUDGET_EXCEEDED', 'Budget Exceeded'),
+        ('SETTLEMENT_ADDED', 'Settlement Recorded'),
+    ]
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='notifications'
+    )
+    group = models.ForeignKey(
+        Group,
+        on_delete=models.CASCADE,
+        related_name='notifications',
+        null=True,
+        blank=True
+    )
+    notification_type = models.CharField(max_length=50, choices=NOTIFICATION_TYPES)
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Notification for {self.user.username}: {self.title} (Read: {self.is_read})"
+

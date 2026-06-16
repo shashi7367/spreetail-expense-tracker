@@ -1,12 +1,19 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
-from .views import HealthCheckView, RegisterView, LoginView, MeView, GroupViewSet, ExpenseViewSet, CSVImportView
+from .views import (
+    HealthCheckView, RegisterView, LoginView, MeView, 
+    GroupViewSet, ExpenseViewSet, CSVImportView,
+    BudgetViewSet, NotificationViewSet, OCRScanView,
+    AnalyticsSummaryView, ExpensePredictionView
+)
 
-# Initialize DRF Router to dynamically build REST paths for Group and Expense ViewSets
+# Initialize DRF Router to dynamically build REST paths for ViewSets
 router = DefaultRouter()
 router.register(r'groups', GroupViewSet, basename='group')
 router.register(r'expenses', ExpenseViewSet, basename='expense')
+router.register(r'budgets', BudgetViewSet, basename='budget')
+router.register(r'notifications', NotificationViewSet, basename='notification')
 
 urlpatterns = [
     # Health checks
@@ -21,6 +28,12 @@ urlpatterns = [
     # CSV Import route
     path('import/csv/', CSVImportView.as_view(), name='csv_import'),
     
-    # Routers (Groups and Expenses REST endpoints)
+    # Custom API endpoints
+    path('analytics/summary/', AnalyticsSummaryView.as_view(), name='analytics_summary'),
+    path('analytics/predict/', ExpensePredictionView.as_view(), name='analytics_predict'),
+    path('ocr/scan/', OCRScanView.as_view(), name='ocr_scan'),
+    
+    # Routers (Groups, Expenses, Budgets, Notifications endpoints)
     path('', include(router.urls)),
 ]
+

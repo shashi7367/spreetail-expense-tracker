@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, serializers
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -8,10 +8,11 @@ from django.utils import timezone
 from rest_framework.parsers import MultiPartParser, FormParser
 from .services.csv_importer import CSVImporter
 
-from .models import CustomUser, Group, Member, Expense, ExpenseSplit, Settlement
+from .models import CustomUser, Group, Member, Expense, ExpenseSplit, Settlement, Budget, Notification, CATEGORY_CHOICES
 from .serializers import (
     RegisterSerializer, LoginSerializer, UserSerializer,
-    GroupSerializer, GroupDetailSerializer, ExpenseSerializer
+    GroupSerializer, GroupDetailSerializer, ExpenseSerializer,
+    BudgetSerializer, NotificationSerializer
 )
 
 
@@ -197,6 +198,19 @@ class GroupViewSet(viewsets.ModelViewSet):
             settled_at=timezone.now()
         )
 
+        # Trigger notification to the receiver
+        try:
+            Notification.objects.create(
+                user=receiver,
+                group=group,
+                notification_type='SETTLEMENT_ADDED',
+                title="Settlement Received",
+                message=f"{sender.username} recorded a payment of ₹{settlement.amount:.2f} to you in group '{group.name}'."
+            )
+        except Exception:
+            pass
+
+
         return Response(
             {
                 "detail": f"Successfully recorded settlement of {amount} from '{sender.username}' to '{receiver.username}'.",
@@ -302,6 +316,68 @@ class GroupViewSet(viewsets.ModelViewSet):
         return Response(simplified_debts, status=status.HTTP_200_OK)
 
 
+def check_budget_alerts(group, category):
+    from django.db.models import Sum
+    from decimal import Decimal
+    try:
+        budget = Budget.objects.get(group=group, category=category)
+    except Budget.DoesNotExist:
+        return
+
+    total_spent = Expense.objects.filter(group=group, category=category, is_deleted=False).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    if budget.amount_limit <= 0:
+        return
+        
+    utilization = total_spent / budget.amount_limit
+    category_label = dict(CATEGORY_CHOICES).get(category, category)
+    
+    notification_type = None
+    title = ""
+    message = ""
+    
+    if utilization >= 1.0:
+        notification_type = 'BUDGET_EXCEEDED'
+        title = f"Budget Exceeded: {category_label}"
+        message = f"Total spending on {category_label} in group '{group.name}' is ₹{total_spent:.2f}, exceeding the budget limit of ₹{budget.amount_limit:.2f}."
+    elif utilization >= 0.8:
+        notification_type = 'BUDGET_WARNING'
+        title = f"Budget Warning: {category_label}"
+        message = f"Total spending on {category_label} in group '{group.name}' is ₹{total_spent:.2f} ({(utilization*100):.1f}% of limit ₹{budget.amount_limit:.2f})."
+        
+    if notification_type:
+        memberships = group.memberships.select_related('user')
+        for m in memberships:
+            # Check recent notifications to avoid spamming
+            recent_exists = Notification.objects.filter(
+                user=m.user,
+                group=group,
+                notification_type=notification_type,
+                created_at__gte=timezone.now() - timezone.timedelta(minutes=5)
+            ).exists()
+            if not recent_exists:
+                Notification.objects.create(
+                    user=m.user,
+                    group=group,
+                    notification_type=notification_type,
+                    title=title,
+                    message=message
+                )
+
+def notify_new_expense(expense):
+    group = expense.group
+    payer = expense.paid_by
+    memberships = group.memberships.select_related('user')
+    for m in memberships:
+        if m.user != payer:
+            Notification.objects.create(
+                user=m.user,
+                group=group,
+                notification_type='EXPENSE_ADDED',
+                title=f"New Expense in {group.name}",
+                message=f"{payer.username} added '{expense.description}' of ₹{expense.amount:.2f}."
+            )
+
+
 class ExpenseViewSet(viewsets.ModelViewSet):
     """
     ModelViewSet handling Expense actions.
@@ -323,6 +399,21 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         # Optimize queries by fetching related fields
         return queryset.select_related('group', 'paid_by').prefetch_related('splits__user')
 
+    def perform_create(self, serializer):
+        expense = serializer.save()
+        try:
+            notify_new_expense(expense)
+            check_budget_alerts(expense.group, expense.category)
+        except Exception:
+            pass
+
+    def perform_update(self, serializer):
+        expense = serializer.save()
+        try:
+            check_budget_alerts(expense.group, expense.category)
+        except Exception:
+            pass
+
     def destroy(self, request, *args, **kwargs):
         """
         Overridden DELETE route to execute soft-deletion.
@@ -335,7 +426,13 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         instance.deleted_at = timezone.now()
         instance.save()
         
+        try:
+            check_budget_alerts(instance.group, instance.category)
+        except Exception:
+            pass
+        
         return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 
 class CSVImportView(APIView):
@@ -382,3 +479,142 @@ class CSVImportView(APIView):
             return Response(report, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"detail": f"An error occurred during file import: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class BudgetViewSet(viewsets.ModelViewSet):
+    """
+    ModelViewSet for managing budgets.
+    Enforces user membership for group updates.
+    """
+    serializer_class = BudgetSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Users can only view budgets for groups they are member of
+        return Budget.objects.filter(group__memberships__user=self.request.user)
+
+    def perform_create(self, serializer):
+        group = serializer.validated_data['group']
+        if not Member.objects.filter(group=group, user=self.request.user).exists():
+            raise serializers.ValidationError("You must be a member of the group to set a budget.")
+        serializer.save(created_by=self.request.user)
+
+
+class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for listing notifications and marking them as read.
+    """
+    serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Notification.objects.filter(user=self.request.user).order_by('-created_at')
+
+    @action(detail=False, methods=['post'], url_path='mark-all-read')
+    def mark_all_read(self, request):
+        Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+        return Response({"detail": "All notifications marked as read."}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='mark-read')
+    def mark_read(self, request, pk=None):
+        notification = self.get_object()
+        notification.is_read = True
+        notification.save()
+        return Response({"detail": "Notification marked as read."}, status=status.HTTP_200_OK)
+
+
+class OCRScanView(APIView):
+    """
+    Simulated OCR view that runs filename matches and random seed values
+    to extract fields.
+    """
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        file_obj = request.FILES.get('file')
+        if not file_obj:
+            return Response({"detail": "No file uploaded."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        from .services.ocr_scanner import OCRReceiptScanner
+        try:
+            result = OCRReceiptScanner.scan_receipt(file_obj.name, file_obj.read())
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"detail": f"OCR Scan failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class AnalyticsSummaryView(APIView):
+    """
+    Gathers category aggregate spend, time trend aggregates, and member balances.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        group_id = request.query_params.get('group_id')
+        user = request.user
+        from django.db.models import Sum
+        
+        expenses = Expense.objects.filter(is_deleted=False)
+        if group_id:
+            try:
+                group = Group.objects.get(id=group_id)
+                # Verify membership
+                if not Member.objects.filter(group=group, user=user).exists():
+                    return Response({"detail": "Access denied. You are not a member of this group."}, status=status.HTTP_403_FORBIDDEN)
+                expenses = expenses.filter(group=group)
+            except (Group.DoesNotExist, ValueError):
+                return Response({"detail": "Group not found."}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            # Global expenses across user's groups
+            expenses = expenses.filter(group__memberships__user=user)
+
+        # 1. Spend by category
+        category_data = expenses.values('category').annotate(total=Sum('amount_inr')).order_by('-total')
+        category_spend = {item['category']: float(item['total']) for item in category_data}
+
+        # 2. Spend trends by month
+        from django.db.models.functions import TruncMonth
+        monthly_data = expenses.annotate(month=TruncMonth('expense_date')).values('month').annotate(total=Sum('amount_inr')).order_by('month')
+        monthly_trend = []
+        for row in monthly_data:
+            if row['month']:
+                monthly_trend.append({
+                    "month": row['month'].strftime('%Y-%m'),
+                    "amount": float(row['total'])
+                })
+
+        # 3. Member contribution (if group_id is provided)
+        member_spend = []
+        if group_id:
+            # Group total spend by member
+            memberships = group.memberships.select_related('user')
+            for m in memberships:
+                spent = expenses.filter(paid_by=m.user).aggregate(total=Sum('amount_inr'))['total'] or 0.0
+                member_spend.append({
+                    "username": m.user.username,
+                    "email": m.user.email,
+                    "amount": float(spent)
+                })
+
+        return Response({
+            "category_spend": category_spend,
+            "monthly_trend": monthly_trend,
+            "member_spend": member_spend if group_id else []
+        }, status=status.HTTP_200_OK)
+
+
+class ExpensePredictionView(APIView):
+    """
+    Retrieves statistical prediction projections and recommendations.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from .services.predictor import ExpensePredictor
+        try:
+            predictions = ExpensePredictor.get_predictions(request.user)
+            return Response(predictions, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"detail": f"AI Forecasting failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
